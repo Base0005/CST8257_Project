@@ -1,0 +1,77 @@
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(63, 67, 71);
+    padding: 0;
+    margin: 0%;
+}
+
+body {
+    margin: 0;
+}
+
+img {
+    align-self: center;
+}
+nav a {
+    font-size: 2rem;
+    color: white;
+    padding: 10px;
+    font-family: Avenir;
+    text-decoration: none;
+}
+
+nav a:hover {
+    background-color: rgb(16, 15, 15);
+}
+
+main {
+    margin: 50px;
+    font-family: Avenir;
+}
+
+footer {
+    background-color: #00703c;
+    font-family: Avenir;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.TnCContent {
+    margin-bottom: 50px;
+}
+
+.TnCRule {
+    border: 2px solid rgb(63, 67, 71);
+    margin: 0;
+    padding: 5px;
+}
+
+.TnCRuleMiddle {
+    margin: 0;
+    border: 2px solid rgb(63, 67, 71);
+    border-bottom: 0px;
+    border-top: 0px;
+    padding: 5px;
+}
+
+.TnCCheckbox {
+    margin-bottom: 50px;
+}
+
+#submitBtn{
+    background-color: #0370ff; /* Green */
+    border: none;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
