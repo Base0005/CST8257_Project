@@ -1,121 +1,135 @@
 <?php
-include 'header.php';
+include "header.php";
 
-$errorList = [];
-$userId = $name = $phone = $password = $confirmPassword = "";
-
-// Database connection details
-$host = 'localhost'; // Or your database host
+$host = 'localhost';
 $db = 'cst8257project';
-$user = 'root';      // Or your database username
+$user = 'root';
 $pass = '';
 
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $userId = $_POST['UserId'] ?? '';
-    $name = $_POST['Name'] ?? '';
-    $phone = $_POST['Phone'] ?? '';
-    $password = $_POST['Password'] ?? '';
-    $confirmPassword = $_POST['confirmPassword'] ?? '';
+$conn = new mysqli($host, $user, $pass, $db);
+$message = '';
 
-    // Validate Student ID
-    if (empty($userId)) {
-        $errorList[] = "Student ID is required.";
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $userId = $_POST['userId'];
+    $name = $_POST['name'];
+    $phone = $_POST['phone'];
+    $password = $_POST['password'];
+    $confirmPassword = $_POST['confirmPassword'];
+
+    // Validate user ID format
+    if (!preg_match('/^[a-zA-Z0-9]+$/', $userId)) {
+        $message = "User ID can only contain letters and numbers.";
     }
-
-    // Validate Name
-    if (empty($name)) {
-        $errorList[] = "Name is required.";
-    }
-
-    // Validate Phone Number
-    if (empty($phone)) {
-        $errorList[] = "Phone Number is required.";
-    } elseif (!preg_match('/^(?!1)(\(\d{3}\)\s?|\d{3}[-.\s]?)\d{3}[-.\s]?\d{4}$/', $phone)) { // Adjusted to match 10 digits without area code validation
-        $errorList[] = "Phone Number must be 10 digits.";
-    }
-
-    // Validate Password
-    if (empty($password)) {
-        $errorList[] = "Password is required.";
-    } elseif ($password !== $confirmPassword) {
-        $errorList[] = "Passwords do not match.";
-    } elseif (!preg_match('/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).{6,}$/', $password)) {
-        $errorList[] = "Password must be at least 6 characters long, contain at least one uppercase letter, one lowercase letter, and one digit.";
-    }
-
-    // If no errors, process the form (e.g., save to database)
-    if (empty($errorList)) {
-        $conn = new mysqli($host, $user, $pass, $db);
-        // Check connection
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
+    // Check if user ID already exists
+    else {
+        $stmt = $conn->prepare("SELECT UserId FROM user WHERE UserId = ?");
+        $stmt->bind_param("s", $userId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows > 0) {
+            $message = "This User ID is already taken.";
+        }
+        // Validate phone number format (nnn-nnn-nnnn)
+        elseif (!preg_match('/^\d{3}-\d{3}-\d{4}$/', $phone)) {
+            $message = "Phone number must be in format: nnn-nnn-nnnn";
+        }
+        // Check if passwords match
+        elseif ($password !== $confirmPassword) {
+            $message = "Passwords do not match.";
         } else {
-            try {
-                $studentAddition = $conn->query("INSERT INTO user (UserId, Name, Phone, Password) VALUES ('$userId', '$name', '$phone', '$password')");
-                if ($studentAddition) {
-                    echo "New student added successfully.<br>";
-                    // Store the student's information in the session
-                    $_SESSION['UserId'] = $userId;
-                    $_SESSION['Name'] = $name;
-                    $_SESSION['Phone'] = $phone;
-                    $_SESSION['Password'] = $password;
-                    header("Location: index.php"); // Redirect to the CourseSelection page
-                    $conn->close();  // Close the database connection
-                } else {
-                    echo "Error adding student: " . $conn->error;
-                }
-            } catch (Exception $e) {
-                // Handle the exception and show the error message
-                $errorMessage = $e->getMessage();
+            // Hash password and insert new user
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("INSERT INTO user (UserId, Name, Phone, Password) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $userId, $name, $phone, $hashedPassword);
 
-                // Check if the error is a duplicate entry
-                if (strpos($errorMessage, "Duplicate entry") !== false) {
-                    $errorList[] = "User ID '$userId' is already being used.";
-                } else {
-                    $errorList[] = $errorMessage; // Generic error message
-                }
+            if ($stmt->execute()) {
+                header("Location: Login.php");
+                exit();
+            } else {
+                $message = "Error creating account. Please try again.";
             }
         }
     }
 }
 ?>
 
-<main>
-    <h1>Registration Page</h1>
-    <form action="" method="post">
-        <label for="UserId">User ID:</label>
-        <input type="text" id="UserId" name="UserId" value="<?php echo htmlspecialchars($userId); ?>"
-            required><br>
+<main style="display: flex; justify-content: center; align-items: center;">
+    <div>
+        <h1>Sign Up</h1>
+        <?php if ($message): ?>
+            <div class="error-message"><?= htmlspecialchars($message) ?></div>
+        <?php endif; ?>
 
-        <label for="Name">Name:</label>
-        <input type="text" id="Name" name="Name" value="<?php echo htmlspecialchars($name); ?>" required><br>
+        <form method="post" style="display: flex; flex-direction: column; width: 300px;">
+            <div>
+                <label for="userId">User ID:</label>
+                <input type="text" id="userId" name="userId" required>
+            </div>
 
-        <label for="Phone">Phone Number:</label>
-        <input type="tel" id="Phone" name="Phone" value="<?php echo htmlspecialchars($phone); ?>" required><br>
+            <div>
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
 
-        <label for="Password">Password:</label>
-        <input type="password" id="Password" name="Password" required><br>
+            <div>
+                <label for="phone">Phone Number:</label>
+                <input type="tel" id="phone" name="phone" placeholder="nnn-nnn-nnnn" required>
+            </div>
 
-        <label for="confirmPassword">Confirm Password:</label>
-        <input type="password" id="confirmPassword" name="confirmPassword" required><br>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
 
-        <input type="submit" value="Submit">
-    </form>
+            <div>
+                <label for="confirmPassword">Confirm Password:</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
 
-    <?php if (!empty($errorList)): ?>
-        <div style="color: red;">
-            <?php foreach ($errorList as $error): ?>
-                <p><?php echo htmlspecialchars($error); ?></p>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-    <?php
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    ?>
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <input type="submit" class="button" value="Submit">
+                <input type="reset" class="button" value="Clear">
+            </div>
+        </form>
+    </div>
 </main>
 
+<style>
+    .error-message {
+        color: red;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid red;
+        background-color: #ffe6e6;
+    }
+    .button {
+        display: inline-block;
+        padding: 10px 20px;
+        margin: 10px 0;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+    }
+
+    form div {
+        margin: 10px 0;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="tel"],
+    input[type="password"] {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+    }
+</style>
+
 <?php
-include 'footer.php';
+$conn->close();
+include "footer.php";
 ?>
